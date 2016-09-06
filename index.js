@@ -33,6 +33,11 @@ function listen () {
 
     switch (tokens[0]) {
 
+    /**
+     * exit
+     * quit
+     */
+
     case 'exit':
     case 'quit':
 
