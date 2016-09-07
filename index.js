@@ -1,26 +1,70 @@
 var system = require('system');
-var page = require('webpage').create();
+var webpage = require('webpage');
 
-page.viewportSize = {
-    width: 768, // 414 / 768
-    height: 1024 // 736 / 1024
-};
+function App () {
 
-function renderBase64 (format) {
+    this.page = null;
 
-    format = format || 'png';
-
-    return page.renderBase64(format);
+    this.settings = {
+        viewportSize: {
+            width: 768,
+            height: 1024
+        }
+    };
 }
 
-function reply (response) {
+App.prototype.start = function () {
+
+    this.page = webpage.create();
+
+    this.page.viewportSize = {
+        width: 768, // 414 / 768
+        height: 1024 // 736 / 1024
+    };
+
+    this.listen();
+};
+
+App.prototype.open = function (url) {
+
+    var self = this;
+
+    this.page.viewportSize = this.settings.viewportSize;
+
+    this.page.open(url, function (status) {
+
+        self.reply(status);
+    });
+};
+
+App.prototype.set = function (parameter, value) {
+
+    switch (parameter) {
+
+    case 'viewportSize.width':
+
+        this.settings.viewportSize.width = parseInt(value);
+
+        break;
+
+    case 'viewportSize.height':
+
+        this.settings.viewportSize.height = parseInt(value);
+
+        break;
+    }
+
+    this.reply('OK');
+};
+
+App.prototype.reply = function (response) {
 
     system.stdout.writeLine(response);
 
-    listen();
-}
+    this.listen();
+};
 
-function listen () {
+App.prototype.listen = function () {
 
     if (system.stdin.atEnd()) {
 
@@ -42,7 +86,8 @@ function listen () {
     case 'quit':
 
         phantom.exit();
-        return;
+
+        break;
 
     /**
      * open http://example.com
@@ -50,10 +95,7 @@ function listen () {
 
     case 'open':
 
-        page.open(tokens[1], function (status) {
-
-            reply(status);
-        });
+        this.open(tokens[1]);
 
         break;
 
@@ -63,8 +105,19 @@ function listen () {
 
     case 'renderBase64':
 
-        var img = renderBase64();
-        reply(img);
+        var img = this.page.renderBase64('png');
+        this.reply(img);
+
+        break;
+
+    /**
+     * render
+     */
+
+    case 'render':
+
+        this.page.render(tokens[1], tokens[2], tokens[3]);
+        this.reply('OK');
 
         break;
 
@@ -75,22 +128,7 @@ function listen () {
 
     case 'set':
 
-        switch (tokens[1]) {
-
-        case 'viewportSize.width':
-
-            page.viewportSize.width = tokens[2];
-            reply('OK');
-
-            break;
-
-        case 'viewportSize.height':
-
-            page.viewportSize.height = tokens[2];
-            reply('OK');
-
-            break;
-        }
+        this.set(tokens[1], tokens[2]);
 
         break;
 
@@ -99,9 +137,11 @@ function listen () {
      */
 
     default:
-        reply('ERROR Unknown command');
+
+        this.reply('ERROR Unknown command');
         break;
     }
-}
+};
 
-listen();
+var app = new App();
+app.start();
